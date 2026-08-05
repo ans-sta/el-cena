@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- el-cena ikona: melns lapas nakts fons, cenu stabiņu silusts apakšā.
+       Krāsas = lapas nakts joslu palete (barN): lēts zils/ciāns → dārgs
+       dzintars/sarkans, augot pa labi. Viens avots visiem PNG izmēriem. -->
+  <rect width="512" height="512" fill="#0F0F11"/>
+  <g>
+    <rect x="88"  y="344" width="48" height="72"  rx="10" fill="#2B5FA8"/>
+    <rect x="160" y="284" width="48" height="132" rx="10" fill="#27A3CC"/>
+    <rect x="232" y="320" width="48" height="96"  rx="10" fill="#2B5FA8"/>
+    <rect x="304" y="216" width="48" height="200" rx="10" fill="#C4862C"/>
+    <rect x="376" y="152" width="48" height="264" rx="10" fill="#BE3A2E"/>
+  </g>
+</svg>

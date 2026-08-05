@@ -7,16 +7,20 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Elektrības cena</title>
 <!--
-  ELEKTRĪBAS CENAS DISPLEJS (Nord Pool LV) — publiskā versija
-  ============================================================
-  Šī ir el-cena.stabingis.lv lapa. Datus (Nord Pool day-ahead cenas LV zonai,
-  c/kWh ar PVN) reizi dienā sagatavo GitHub Actions darbs, kas tos paņem no
-  Elering publiskā API un ieraksta cenas.json turpat repozitorijā. Lapā nav
-  nekādu noslēpumu — ne tokenu, ne atslēgu.
+  ELEKTRĪBAS CENAS DISPLEJS (Nord Pool LV) — VIENS AVOTS VISĀM KOPIJĀM
+  =====================================================================
+  Repo: github.com/ans-sta/el-cena  →  https://el-cena.stabingis.lv
 
-  Radniecība: šī lapa ir publiskais brālis Home Assistant sienas displejam
-  elektriba.html (M19/Lauciņi) — izskats un loģika identiski, atšķiras tikai
-  datu slānis (cenas.json šeit; HA API + tokens tur).
+  Viens un tas pats fails strādā divos režīmos:
+  - PUBLISKAIS (GitHub Pages): blakus NAV elektriba-config.js ar tokenu →
+    cenas no cenas.json (to reizi dienā sagatavo GitHub Actions darbs no
+    Elering publiskā API), nedēļas kvartiles izrēķina pati lapa.
+  - MĀJAS HA (M19, Lauciņi): blakus IR elektriba-config.js ar HA tokenu →
+    cenas no HA nordpool sensora, kvartiles no HA sensora. Tokeni dzīvo
+    TIKAI mājas config/www/elektriba-config.js — git repo to nekad nav.
+
+  Izmaiņas dara repo (index.html), tad izvieto.sh nokopē uz abām mājām;
+  GitHub Pages atjaunojas pats līdz ar push.
 
   Krāsas: auksts = lēts, karsts = dārgs (zils / ciāns / dzintars / sarkans).
   Abas paletes (diena + nakts) validētas pret CVD un kontrasta prasībām.
@@ -138,14 +142,23 @@
   <div id="chartwrap"><canvas id="chart"></canvas></div>
   <div id="err"></div>
 
+<script src="elektriba-config.js"></script>
 <script>
-var CONFIG = {
-  dataUrl: "cenas.json",  // GitHub Actions sagatavotais cenu fails (tas pats domēns)
-  refreshMinutes: 10,     // cik bieži pārlasīt cenas.json (jauni dati ~1x dienā ap 14:20)
+// Konfigurācija: elektriba-config.js (ja tāds ir blakus) uzliek
+// window.EL_CENA_CONFIG ar HA tokenu — tad lapa strādā HA režīmā.
+// Bez tā spēkā ir publiskie noklusējumi (cenas.json no šī paša domēna).
+var NOKLUSEJUMI = {
+  dataUrl: "cenas.json",  // publiskais cenu fails (GitHub Actions to atjauno)
+  refreshMinutes: 10,     // publiski jauni dati ~1x dienā; mājas config liek 1
   gridStepCents: 5,       // grafika horizontālo līniju solis (centi)
   nightDimFrom: 22,       // no cikiem tumšais režīms (stunda)
   nightDimTo: 6.5         // līdz cikiem (6.5 = 06:30)
 };
+var CONFIG = window.EL_CENA_CONFIG || {};
+for (var _lauks in NOKLUSEJUMI) {
+  if (CONFIG[_lauks] === undefined) CONFIG[_lauks] = NOKLUSEJUMI[_lauks];
+}
+var HA_REZIMS = !!CONFIG.token; // tokens klāt = mājas HA displejs
 
 // Kvartiļu krāsas: auksts = lēts, karsts = dārgs.
 // bar/text — diena uz #F6F5F1; barN/textN — nakts uz #0F0F11.
@@ -164,11 +177,12 @@ var UI = {
   night: { grid:"#1E1E23", axis:"#33333A", text:"#6B6B72", ink:"#C9C9CE" }
 };
 
-var slots = [];        // [{start:Date, end:Date, value:Number}] — viss cenas.json krājums (~9 dienas)
+var slots = [];        // [{start:Date, end:Date, value:Number}] — HA: šodiena+rītdiena; publiski ~9 dienas
 var hasTomorrow = false; // rītdienas cenas klāt → pagātni grafikā vairs nerāda
-var weeklyCuts = null; // [q25,q50,q75] — izrēķina pati lapa no pēdējām ≤7 dienām
+var entityId = CONFIG.entityId || "";
+var weeklyCuts = null; // [q25,q50,q75] — HA: no sensora; publiski rēķina pati lapa
 var lastFetch = null;
-var dataStamp = null;  // kad cenas.json pēdējoreiz sagatavots (lauks "atjaunots")
+var dataStamp = null;  // publiski: kad cenas.json sagatavots (lauks "atjaunots")
 var lastError = "";
 
 /* ---------- palīgi (ES5, der vecam Safari) ---------- */
@@ -212,24 +226,73 @@ function priceHTML(v){
 function fmtTime(d){ return pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
 
 function xhr(path, cb){
+  var url = (CONFIG.haUrl || "") + path;
   var r = new XMLHttpRequest();
-  r.open("GET", path, true);
+  r.open("GET", url, true);
+  if (HA_REZIMS) r.setRequestHeader("Authorization", "Bearer " + CONFIG.token);
   r.onreadystatechange = function(){
     if (r.readyState !== 4) return;
     if (r.status >= 200 && r.status < 300) {
       var data = null, e = null;
       try { data = JSON.parse(r.responseText); } catch (ex) { e = "Nevar nolasīt atbildi (JSON)"; }
       cb(e, data);
+    } else if (r.status === 401) {
+      cb("HA neielaiž (401) — pārbaudi tokenu CONFIG.token rindā.", null);
     } else {
-      cb("Cenu faila pieprasījums neizdevās (HTTP " + r.status + ")", null);
+      cb("Datu pieprasījums neizdevās (HTTP " + r.status + ")", null);
     }
   };
-  try { r.send(); } catch (ex) { cb("Nevar ielādēt cenu failu: " + ex.message, null); }
+  try { r.send(); } catch (ex) { cb("Nevar sazināties ar HA: " + ex.message, null); }
 }
 
 /* ---------- datu iegūšana ---------- */
 
+function rawLooksRight(a){
+  return a && Object.prototype.toString.call(a) === "[object Array]" &&
+         a.length > 0 && a[0] && (a[0].value !== undefined) && (a[0].start !== undefined);
+}
+
+function findEntity(cb){
+  if (entityId) { cb(null); return; }
+  xhr("/api/states", function(err, states){
+    if (err) { cb(err); return; }
+    var best = null;
+    for (var i = 0; i < states.length; i++) {
+      var st = states[i];
+      var at = st.attributes || {};
+      if (rawLooksRight(at.raw_today)) {
+        if (st.entity_id.indexOf("nordpool") >= 0 || st.entity_id.indexOf("nord_pool") >= 0) {
+          best = st.entity_id; break;
+        }
+        if (!best) best = st.entity_id;
+      }
+    }
+    if (!best) { cb("Neatradu sensoru ar raw_today atribūtu. Ieraksti entityId CONFIG sadaļā."); return; }
+    entityId = best;
+    cb(null);
+  });
+}
+
+function seriesFrom(list){
+  var out = [];
+  if (!list) return out;
+  for (var i = 0; i < list.length; i++) {
+    var it = list[i];
+    if (it.value === null || it.value === undefined) continue;
+    var s = parseDate(it.start), e = parseDate(it.end);
+    if (!s) continue;
+    if (!e) e = new Date(s.getTime() + 15 * 60000);
+    out.push({ start: s, end: e, value: Number(it.value) });
+  }
+  return out;
+}
+
+// Divi datu ceļi: HA sensors (mājās) vai cenas.json (publiski)
 function loadData(){
+  if (HA_REZIMS) loadDataHA(); else loadDataJson();
+}
+
+function loadDataJson(){
   // ?t= apiet GitHub Pages CDN kešu (max-age=600) — citādi jauns cenas.json
   // planšetē var parādīties ar 10 min nokavēšanos arī pēc pārlādes
   xhr(CONFIG.dataUrl + "?t=" + new Date().getTime(), function(err, dati){
@@ -259,9 +322,10 @@ function loadData(){
   });
 }
 
-// Nedēļas kvartiles — tas pats aprēķins, ko HA versijā dara template sensors
-// "Nedelas cenu kvartiles": pēdējo ≤7 dienu (līdz šodienai ieskaitot) visas
-// vērtības vienā krājumā, ceil-indeksa kvantiles. <4 dienas → dienas kvartiles.
+// Nedēļas kvartiles publiskajā režīmā — tas pats aprēķins, ko HA pusē dara
+// template sensors "Nedelas cenu kvartiles": pēdējo ≤7 dienu (līdz šodienai
+// ieskaitot) vērtības vienā krājumā, ceil-indeksa kvantiles. <4 dienas →
+// paliek dienas kvartiles.
 function computeWeekly(){
   weeklyCuts = null;
   var now = new Date();
@@ -286,6 +350,41 @@ function computeWeekly(){
   ];
 }
 
+function loadDataHA(){
+  findEntity(function(err){
+    if (err) { showError(err); return; }
+    xhr("/api/states/" + entityId, function(err2, st){
+      if (err2) { showError(err2); return; }
+      var at = st.attributes || {};
+      var sToday = seriesFrom(at.raw_today), sTomorrow = seriesFrom(at.raw_tomorrow);
+      hasTomorrow = sTomorrow.length > 0;
+      var s = sToday.concat(sTomorrow);
+      if (s.length === 0) { showError("Sensorā " + entityId + " nav cenu datu (raw_today tukšs)."); return; }
+      s.sort(function(a, b){ return a.start - b.start; });
+      slots = s;
+      lastFetch = new Date();
+      lastError = "";
+      $("err").style.display = "none";
+      loadWeekly();
+      render();
+    });
+  });
+}
+
+function loadWeekly(){
+  if (!CONFIG.weeklyEntity) return;
+  xhr("/api/states/" + CONFIG.weeklyEntity, function(err, st){
+    if (err || !st || !st.attributes || !st.attributes.dati) return;
+    var d = st.attributes.dati;
+    if (d.q75 === undefined) return;
+    // nedēļas kvartiles (tikai krāsām) no pietiekamas vēstures — 1–3 dienu
+    // krājumā lētā dienas daļa dominē un krāsas maldina; līdz tam dienas kvartiles
+    if ((d.dienu_skaits || 0) < 4) return;
+    weeklyCuts = [d.q25, d.q50, d.q75];
+    render();
+  });
+}
+
 function showError(msg){
   lastError = msg;
   var e = $("err");
@@ -304,12 +403,12 @@ function currentSlot(){
   return null;
 }
 
-// GRAFIKA KRĀJUMS: cenas.json satur ~9 dienas (kvartiļu rēķinam), bet grafiks
-// uzvedas kā HA versija ar šodienu+rītdienu. Vienīgais papildinājums — pirms
-// 08:00 klāt nāk vakardienas aste no vēstures loga griešanas punkta (00:30
-// naktī logs tagad tiešām rāda no vakardienas 18:00, kas HA versijā nebija
-// iespējams, jo raw_today sākas pusnaktī). Pēc 08:00 krājums = no šodienas
-// pusnakts, tāpēc vakardienas pīķi neuzpūš portreta Y asi.
+// GRAFIKA KRĀJUMS: publiskajā režīmā cenas.json satur ~9 dienas (kvartiļu
+// rēķinam), bet grafiks uzvedas kā HA versija ar šodienu+rītdienu; pirms
+// 08:00 klāt nāk vakardienas aste no vēstures loga griešanas punkta, lai
+// logs naktī tiešām rāda no vakardienas 18:00. Pēc 08:00 krājums = no
+// šodienas pusnakts, tāpēc vakardienas pīķi neuzpūš portreta Y asi.
+// HA režīmā dati tāpat sākas šodienas pusnaktī — filtrs tur nemaina neko.
 function chartStock(){
   var t = new Date();
   var ref = new Date(t.getTime() - 2 * 3600000);
@@ -430,8 +529,8 @@ function render(){
   renderChart(night);
 
   // statusa rinda tikai tad, ja dati veci — svaigums nav jāziņo.
-  // Te "veci" ir divējādi: cenas.json pats novecojis (Actions darbs kluss
-  // >26 h — jauniem datiem jānāk reizi dienā) vai lapa nespēj to pārlasīt.
+  // Publiskajā režīmā "veci" ir arī pats cenas.json (Actions darbs kluss
+  // >26 h — jauniem datiem jānāk reizi dienā).
   var st = $("status");
   if (dataStamp && (new Date() - dataStamp) > 26 * 3600000) {
     st.innerHTML = "dati no " + pad2(dataStamp.getDate()) + "." +
@@ -664,8 +763,8 @@ var chartGeom = null; // {t0v,t1v,padL,plotW} pēdējais zīmējums — pirksta 
 function isPortrait(){ return window.innerHeight > window.innerWidth; }
 
 function chartBounds(){
-  // robežas no grafika krājuma, ne pilnā (9 dienu) saraksta — citādi portretā
-  // varētu aizbīdīt nedēļu pagātnē
+  // robežas no grafika krājuma, ne pilnā saraksta — publiskajā režīmā citādi
+  // portretā varētu aizbīdīt nedēļu pagātnē
   var cs = chartStock();
   if (!cs.length) return null;
   return { t0: cs[0].start.getTime(), t1: cs[cs.length - 1].end.getTime() };
@@ -920,8 +1019,11 @@ $("clock").addEventListener("click", cycleTheme);
 
 // Lēto logu etiķetes ir pogas (2026-08-05): portretā pieskāriens pārbīda
 // grafika skatu uz etiķetes laiku ±30 min (kā Ansis aprakstīja: "līdz 18:15"
-// rāda līdz 18:45, "no 11:15" — no 10:45). Atpakaļ uz AUTO to paceļ tas pats
-// kioska taimeris, kas pirkstu žestiem (2 min bez pieskāriena).
+// rāda līdz 18:45, "no 11:15" — no 10:45), bet ne šaurāku par 4,5 h — īss
+// logs citādi deva 2 h skatu bez konteksta (Anša 2026-08-05 vakara labojums);
+// trūkumu pieliek simetriski ap loga vidu. Pirkstu tālummaiņas 2 h minimums
+// paliek neskarts. Atpakaļ uz AUTO to paceļ tas pats kioska taimeris, kas
+// pirkstu žestiem (2 min bez pieskāriena).
 $("nextlist").addEventListener("click", function(e){
   if (!isPortrait()) return;
   var el = e.target;
@@ -931,7 +1033,14 @@ $("nextlist").addEventListener("click", function(e){
   var t1 = parseInt(el.getAttribute("data-t1"), 10);
   if (!t0 || !t1) return;
   lastChartTouch = new Date().getTime();
-  chartView = clampView({ start: t0 - 1800000, end: t1 + 1800000 });
+  var s = t0 - 1800000, e2 = t1 + 1800000;
+  var MIN_POGA = 4.5 * 3600000;
+  if (e2 - s < MIN_POGA) {
+    var vidus = (s + e2) / 2;
+    s = vidus - MIN_POGA / 2;
+    e2 = vidus + MIN_POGA / 2;
+  }
+  chartView = clampView({ start: s, end: e2 });
   renderChart(lastNightFlag);
 });
 </script>

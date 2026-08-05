@@ -1,0 +1,36 @@
+# Atjauno cenas.json no Elering publiskā API.
+# Jauni (rītdienas) dati parādās ap 13:30–14:00 Rīgas laikā; croni ir UTC:
+#   11:20 UTC = 14:20 EEST (vasara) — galvenais gājiens
+#   12:20 UTC = rezerve, ja pirmajā vēl nebija; ziemā (EET) šis ir 14:20
+#   01:15 UTC = rīta gājiens — datu logs pārbīdās uz jauno dienu
+# GitHub cron mēdz kavēties līdz ~pusstundai — tas te neko nemaina.
+name: Atjauno cenas
+
+on:
+  schedule:
+    - cron: "20 11 * * *"
+    - cron: "20 12 * * *"
+    - cron: "15 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  atjauno:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Paņem cenas no Elering
+        run: python3 atjauno_cenas.py
+      - name: Iekomitē, ja mainījies
+        run: |
+          if git diff --quiet cenas.json 2>/dev/null && [ -f cenas.json ]; then
+            echo "cenas.json nav mainījies — nekas nav jādara"
+            exit 0
+          fi
+          git config user.name "cenu-robots"
+          git config user.email "actions@users.noreply.github.com"
+          git add cenas.json
+          git commit -m "Cenas $(date -u '+%Y-%m-%d %H:%M') UTC"
+          git push

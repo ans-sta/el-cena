@@ -3,6 +3,9 @@
        Krāsas = lapas nakts joslu palete (barN): lēts zils/ciāns → dārgs
        dzintars/sarkans, augot pa labi. Viens avots visiem PNG izmēriem. -->
   <rect width="512" height="512" fill="#0F0F11"/>
+  <!-- zibens augšā pa kreisi (Anša 2026-08-05): dzelten-oranžs, diagonālē
+       pret stabiņiem apakšā pa labi -->
+  <polygon points="199,64 113,181 156,181 96,276 208,149 161,149" fill="#F5A623"/>
   <g>
     <rect x="88"  y="344" width="48" height="72"  rx="10" fill="#2B5FA8"/>
     <rect x="160" y="284" width="48" height="132" rx="10" fill="#27A3CC"/>

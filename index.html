@@ -387,6 +387,11 @@ function loadWeekly(){
 
 function showError(msg){
   lastError = msg;
+  // ja atmiņā jau ir derīgi dati, kļūdu uzkrītoši nerāda — displejs turpina
+  // rādīt esošās cenas, un noklusēto klusi pasaka statusa rinda ("atjaunots
+  // HH:MM" pēc 20 min). Sarkanais rāmis paliek tikai tukšai lapai, kur bez
+  // tā nebūtu nekā (2026-08-05: interneta pārrāvums nedrīkst sabojāt kiosku).
+  if (slots.length) { render(); return; }
   var e = $("err");
   e.innerHTML = "<b>Problēma:</b> " + msg;
   e.style.display = "block";
@@ -963,10 +968,21 @@ setInterval(loadData, CONFIG.refreshMinutes * 60000);
 
 setInterval(render, 30000); // pulkstenis, "tagad" līnija, nakts režīms
 
-// reizi diennaktī pilna pārlāde ap 03:33, lai vecais Safari neaizsērē
+// reizi diennaktī pilna pārlāde ap 03:33, lai vecais Safari neaizsērē —
+// bet TIKAI tad, ja serveris tiešām atbild: pārlāde bez tīkla atstātu
+// pārlūku uz kļūdas lapas līdz interneta atgriešanai (2026-08-05). Ja
+// zonde klusē, mēģinās atkal nākamajā naktī; dati pa dienu tāpat
+// atjaunojas ar parasto loadData ciklu.
 setInterval(function(){
   var n = new Date();
-  if (n.getHours() === 3 && n.getMinutes() === 33) location.reload();
+  if (n.getHours() !== 3 || n.getMinutes() !== 33) return;
+  var zonde = new XMLHttpRequest();
+  zonde.open("GET", location.pathname + "?dzivs=" + n.getTime(), true);
+  zonde.timeout = 15000;
+  zonde.onload = function(){
+    if (zonde.status >= 200 && zonde.status < 400) location.reload();
+  };
+  try { zonde.send(); } catch (e) {}
 }, 55000);
 
 window.onresize = function(){ render(); };

@@ -72,8 +72,10 @@
   .big  { font-size:20vmin; font-size:min(20vmin, 180px);
           font-weight:700; line-height:0.95; letter-spacing:-0.02em; }
   .big .dec { font-size:55%; font-weight:600; }
-  /* negatīvai cenai ("−0,4") visa būtība ir aiz komata — decimāldaļu rāda
-     gandrīz pilnā izmērā (2026-08-06) */
+  /* decimāldaļas izmērs pēc tā, kur cenā ir būtība (2026-08-06): vienciparu
+     cenā (0,3) būtība ir aiz komata → 75 %; negatīvā (−0,4) — vēl svarīgāka
+     → 85 %; divciparu (17,4) būtība ir veselā daļa → paliek 55 % */
+  .big.viencipara .dec { font-size:75%; }
   .big.zem-nulles .dec { font-size:85%; }
   /* vērtējuma etiķete — inversa: balts uz kvartiles krāsas */
   #verdict {
@@ -173,6 +175,14 @@
     .nextrow.plain { font-size:2.8vmin; font-size:min(2.8vmin, 26px); }
     #clock  { font-size:3vmin; font-size:min(3vmin, 26px); }
   }
+  /* MINI režīms (2026-08-06): logs zemāks par 460 px — datora "widget" logs
+     vai guļus pagriezts telefons. Grafiku nerāda, rindas tikai tuvākās 2:
+     paliek pati būtība — cena, vērtējums, tuvākie lētie logi. Klasi liek
+     render() pēc window.innerHeight. */
+  body.mini #chartwrap { display:none; }
+  body.mini #nextlist .nextrow:nth-child(n+3) { display:none; }
+  /* saturu centrē pa vertikāli — logrīka logs bez tukša pagraba */
+  body.mini #row1 { margin-top:auto; margin-bottom:auto; }
 </style>
 </head>
 <body>
@@ -550,7 +560,9 @@ function render(){
   var night = isNight();
   // kioska prāts: 2 min bez pieskāriena — grafika skats atpakaļ uz AUTO
   if (chartView && new Date().getTime() - lastChartTouch > 120000) chartView = null;
-  document.body.className = night ? "night" : "";
+  // mini = logs zemāks par 460 px: bez grafika, tikai būtība (2026-08-06)
+  document.body.className = (night ? "night" : "") +
+                            (window.innerHeight < 460 ? " mini" : "");
   var textQ = night ? COLORS.textN : COLORS.text;
 
   // tēmas ikona PIRMS pulksteņa (2026-08-05): redzama vienmēr — rāda, ka
@@ -565,8 +577,9 @@ function render(){
   if (cur) {
     var qi = quartileOf(cur.value, weeklyCuts || dayCutsMap()[dayKey(cur.start)]);
     $("price").innerHTML = priceHTML(cur.value);
-    // zem nulles būtība ir aiz komata — decimāldaļai lielāks izmērs (CSS)
-    $("price").className = cur.value < 0 ? "big zem-nulles" : "big";
+    // decimāldaļas izmērs pēc tā, kur cenā ir būtība (skat. CSS .viencipara)
+    $("price").className = cur.value < 0 ? "big zem-nulles" :
+                           (cur.value < 10 ? "big viencipara" : "big");
     $("price").style.color = textQ[qi];
     vd.innerHTML = QNAMES[qi];
     vd.style.display = "inline-block";
@@ -854,15 +867,28 @@ function renderChart(night){
   var cv = $("chart");
   var wrap = $("chartwrap");
   var W = wrap.clientWidth - 0;
-  // ainavā ne augstāks par ~42% ekrāna + puse atlikušā gaisa (2026-08-05:
-  // planšetēs tukšums zem ass bija 2× par lielu; chartwrap centrē, tāpēc
-  // +puse augstumā = puse apakšā). Portretā grafikam 1/3 ekrāna — cenai un
-  // sarakstam 2/3 (Anša proporcija 2026-08-05), bez gaisa atdošanas.
+  if (document.body.className.indexOf("mini") >= 0) return; // mini logā grafika nav
   var portrait = isPortrait();
   var telefons = window.innerWidth < 600; // izmēru līmenis, tas pats kas CSS
-  // portretā: telefonam grafiks 1/3, planšetei 35% (Anša 2026-08-06)
-  var H = Math.max(140, Math.min(Math.round(window.innerHeight * (portrait ? (telefons ? 0.33 : 0.35) : 0.42)), wrap.clientHeight));
-  if (!portrait && wrap.clientHeight > H) H = Math.round(Math.min(wrap.clientHeight, H + (wrap.clientHeight - H) / 2));
+  var vmin = Math.min(window.innerWidth, window.innerHeight) / 100;
+  var H;
+  if (portrait) {
+    // ELASTĪGS grafiks portretā (Anša lēmums 2026-08-06): kanva uzsūc visu
+    // brīvo telpu zem satura. Griesti tur ierīces pie noregulētā: telefonam
+    // 1/3 (2/3 cenai — 2026-08-05 proporcija), planšetes formātam 35 %;
+    // tikai izteikti garš (attiecība >1.5) vai plats (≥1100 px) DATORA logs
+    // ļauj grafikam augt līdz 55 % — tur pazūd "mirušais vidus".
+    var brivs = wrap.clientHeight - Math.round(vmin * 1.5); // mīnus apakšas polsteris
+    var garsLogs = window.innerHeight / window.innerWidth > 1.5 || window.innerWidth >= 1100;
+    var griesti = telefons ? 0.33 : (garsLogs ? 0.55 : 0.35);
+    H = Math.max(140, Math.min(brivs, Math.round(window.innerHeight * griesti)));
+  } else {
+    // ainavā kā līdz šim: ne augstāks par ~42% ekrāna + puse atlikušā gaisa
+    // (2026-08-05: planšetēs tukšums zem ass bija 2× par lielu; chartwrap
+    // centrē, tāpēc +puse augstumā = puse apakšā) — sienas displejus neaiztiekam
+    H = Math.max(140, Math.min(Math.round(window.innerHeight * 0.42), wrap.clientHeight));
+    if (wrap.clientHeight > H) H = Math.round(Math.min(wrap.clientHeight, H + (wrap.clientHeight - H) / 2));
+  }
   var dpr = window.devicePixelRatio || 1;
   cv.width = W * dpr; cv.height = H * dpr;
   cv.style.height = H + "px";
@@ -877,8 +903,8 @@ function renderChart(night){
   var ui = night ? UI.night : UI.day;
   var barQ = night ? COLORS.barN : COLORS.bar;
 
-  // fonti mērogojas ar ekrānu (canvas nesaprot vmin — rēķinām px paši)
-  var vmin = Math.min(window.innerWidth, window.innerHeight) / 100;
+  // fonti mērogojas ar ekrānu (canvas nesaprot vmin — rēķinām px paši);
+  // vmin izrēķināts augstāk pie H
   var MONO = "px Menlo, 'Courier New', monospace";
   // vienots asu parakstu fonts un krāsa (2026-08-05: bija divi izmēri un bāls tonis;
   // 2.6 vmin — 3.2 izrādījās par lielu, kad abas asis vienā izmērā);

@@ -72,11 +72,11 @@
   .big  { font-size:20vmin; font-size:min(20vmin, 180px);
           font-weight:700; line-height:0.95; letter-spacing:-0.02em; }
   .big .dec { font-size:55%; font-weight:600; }
-  /* decimāldaļas izmērs pēc tā, kur cenā ir būtība (2026-08-06): vienciparu
-     cenā (0,3) būtība ir aiz komata → 75 %; negatīvā (−0,4) — vēl svarīgāka
-     → 85 %; divciparu (17,4) būtība ir veselā daļa → paliek 55 % */
+  /* decimāldaļas kāpne pēc tā, cik būtības ir aiz komata (Anša 2026-08-06):
+     zem 1 c (0,3 vai −0,4) būtība ir TIKAI aiz komata → 95 %;
+     1–10 c (4,7) → 75 %; divciparu (17,4) būtība ir veselā daļa → 55 % */
   .big.viencipara .dec { font-size:75%; }
-  .big.zem-nulles .dec { font-size:85%; }
+  .big.zem-viena .dec { font-size:95%; }
   /* vērtējuma etiķete — inversa: balts uz kvartiles krāsas */
   #verdict {
     display:none; font-size:4.3vmin; font-size:min(4.3vmin, 38px);
@@ -577,8 +577,8 @@ function render(){
   if (cur) {
     var qi = quartileOf(cur.value, weeklyCuts || dayCutsMap()[dayKey(cur.start)]);
     $("price").innerHTML = priceHTML(cur.value);
-    // decimāldaļas izmērs pēc tā, kur cenā ir būtība (skat. CSS .viencipara)
-    $("price").className = cur.value < 0 ? "big zem-nulles" :
+    // decimāldaļas kāpne pēc tā, cik būtības aiz komata (skat. CSS .zem-viena)
+    $("price").className = cur.value < 1 ? "big zem-viena" :
                            (cur.value < 10 ? "big viencipara" : "big");
     $("price").style.color = textQ[qi];
     vd.innerHTML = QNAMES[qi];

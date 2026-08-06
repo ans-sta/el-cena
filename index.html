@@ -106,34 +106,52 @@
   body.night .col-next { border-left-color:#26262B; }
   body.night #err { color:#C9C9CE; border-left-color:#BE3A2E; }
 
-  /* ---------- portrets: TELEFONI kioska režīmā (2026-08-05) ----------
-     Auditorija — vecāki cilvēki: atbilde PIRMS cipara. Kolonnas saliktas
-     stabā, vērtējuma etiķete virs cenas (flex order), viss lielāks.
-     TIKAI šauriem ekrāniem (<600 px): planšetei portretā šīs proporcijas
-     brauc ārā (2026-08-06) — tā arī vertikāli paliek pie ainavas
-     izkārtojuma. JS isPortrait() lieto to pašu 600 px robežu. */
-  @media (orientation: portrait) and (max-width: 599px) {
-    #row1 { flex-direction:column; padding:9vmin 4vmin 0.5vmin; }
-    #row1 .collbl   { order:1; -webkit-order:1; font-size:4.5vmin; margin-bottom:2vmin; }
-    #row1 .rowbottom{ order:2; -webkit-order:2; margin-top:0; padding-top:0; margin-bottom:2vmin; }
-    #row1 .big      { order:3; -webkit-order:3; font-size:26vmin; }
+  /* ---------- portrets: STRUKTŪRA visiem vertikāliem ekrāniem ----------
+     (2026-08-05/06) Kolonnas stabā, vērtējuma etiķete VIRS cenas (atbilde
+     pirms cipara), virsraksts un dalījuma svītra nost, grafiks pie apakšas.
+     Izmēriem divi līmeņi zemāk: telefons <600 px (vecāki cilvēki — viss
+     lielāks) un planšete ≥600 px (kompakti burti, lielāks grafiks). */
+  @media (orientation: portrait) {
+    #row1 { flex-direction:column; }
+    #row1 .collbl   { order:1; -webkit-order:1; }
+    #row1 .rowbottom{ order:2; -webkit-order:2; margin-top:0; padding-top:0; }
+    #row1 .big      { order:3; -webkit-order:3; }
     #row1 #nextlist { order:2; -webkit-order:2; margin-top:0; }
-    #verdict { font-size:8vmin; padding:1.4vmin 6vmin; border-radius:2.4vmin; }
-    /* virsraksts un dalījuma svītra portretā lieki (Anša lēmums 2026-08-05) —
-       krāsainās rindas no cenas atdalās pašas */
-    .col-next { border-left:none; margin-top:4vmin; padding-top:0; }
+    .col-next { border-left:none; padding-top:0; }
     .col-next .collbl { display:none; }
-    /* grafiks pie apakšējās malas — viss gaiss paliek cenas zonā, tāpēc
-       robeža cena/grafiks vienmēr ir pie 2/3 neatkarīgi no telefona garuma */
+    /* grafiks pie apakšējās malas — viss gaiss paliek cenas zonā */
     #chartwrap { justify-content:flex-end; padding-bottom:1.5vmin; }
+    /* grafiks ķer pirkstus pats (pan/pinch) — pārlūkam tos nedot */
+    #chart  { touch-action:none; }
+  }
+  /* telefons: lielie burti, grafikam 1/3 (JS 0.33) */
+  @media (orientation: portrait) and (max-width: 599px) {
+    #row1 { padding:9vmin 4vmin 0.5vmin; }
+    #row1 .collbl   { font-size:4.5vmin; margin-bottom:2vmin; }
+    #row1 .rowbottom{ margin-bottom:2vmin; }
+    #row1 .big      { font-size:26vmin; }
+    #verdict { font-size:8vmin; padding:1.4vmin 6vmin; border-radius:2.4vmin; }
+    .col-next { margin-top:4vmin; }
     .nextrow { font-size:5.6vmin; min-width:74vmin; border-radius:2vmin;
                padding:1.2vmin 3.5vmin; margin-top:1.5vmin; }
     .nextrow.plain { font-size:4.5vmin; }
     #clock  { font-size:4.5vmin; padding:2.5vmin 3vmin 4vmin 4vmin; }
     #status { font-size:3.6vmin; }
     #err    { font-size:4.2vmin; }
-    /* grafiks ķer pirkstus pats (pan/pinch) — pārlūkam tos nedot */
-    #chart  { touch-action:none; }
+  }
+  /* planšete portretā: kompakti burti, grafikam ~35% (JS 0.35) —
+     Anša 2026-08-06 spec pēc iPad ekrānuzņēmumiem */
+  @media (orientation: portrait) and (min-width: 600px) {
+    #row1 { padding:6vmin 4vmin 0.5vmin; }
+    #row1 .collbl   { font-size:2.6vmin; margin-bottom:1vmin; }
+    #row1 .rowbottom{ margin-bottom:1.5vmin; }
+    #row1 .big      { font-size:15vmin; }
+    #verdict { font-size:4.6vmin; padding:1vmin 4vmin; border-radius:1.6vmin; }
+    .col-next { margin-top:3vmin; }
+    .nextrow { font-size:3.4vmin; min-width:48vmin; border-radius:1.4vmin;
+               padding:0.9vmin 2.8vmin; margin-top:1.2vmin; }
+    .nextrow.plain { font-size:2.8vmin; }
+    #clock  { font-size:3vmin; }
   }
 </style>
 </head>
@@ -780,10 +798,10 @@ var lastChartTouch = 0;
 var lastNightFlag = false;
 var chartGeom = null; // {t0v,t1v,padL,plotW} pēdējais zīmējums — pirksta matemātikai
 
-// "portrets" = TELEFONA portrets (<600 px plats). Platāka ierīce (planšete)
-// vertikāli lieto ainavas izkārtojumu, tāpēc arī grafika uzvedība (skata
-// logs, pirkstu žesti, fonti) seko tai pašai CSS 600 px robežai.
-function isPortrait(){ return window.innerHeight > window.innerWidth && window.innerWidth < 600; }
+// portrets = jebkura vertikāla ierīce (telefons UN planšete): stāvizkārtojums,
+// skata logs, pirkstu žesti un rindu pogas visiem. Izmēru līmeni (telefona
+// lielie burti pret planšetes kompakto) šķir 600 px robeža CSS un renderChart.
+function isPortrait(){ return window.innerHeight > window.innerWidth; }
 
 function chartBounds(){
   // robežas no grafika krājuma, ne pilnā saraksta — publiskajā režīmā citādi
@@ -821,7 +839,9 @@ function renderChart(night){
   // +puse augstumā = puse apakšā). Portretā grafikam 1/3 ekrāna — cenai un
   // sarakstam 2/3 (Anša proporcija 2026-08-05), bez gaisa atdošanas.
   var portrait = isPortrait();
-  var H = Math.max(140, Math.min(Math.round(window.innerHeight * (portrait ? 0.33 : 0.42)), wrap.clientHeight));
+  var telefons = window.innerWidth < 600; // izmēru līmenis, tas pats kas CSS
+  // portretā: telefonam grafiks 1/3, planšetei 35% (Anša 2026-08-06)
+  var H = Math.max(140, Math.min(Math.round(window.innerHeight * (portrait ? (telefons ? 0.33 : 0.35) : 0.42)), wrap.clientHeight));
   if (!portrait && wrap.clientHeight > H) H = Math.round(Math.min(wrap.clientHeight, H + (wrap.clientHeight - H) / 2));
   var dpr = window.devicePixelRatio || 1;
   cv.width = W * dpr; cv.height = H * dpr;
@@ -843,7 +863,8 @@ function renderChart(night){
   // vienots asu parakstu fonts un krāsa (2026-08-05: bija divi izmēri un bāls tonis;
   // 2.6 vmin — 3.2 izrādījās par lielu, kad abas asis vienā izmērā);
   // portretā (telefons rokā, vecāki cilvēki) — lielāks minimums un mērogs
-  var axFH = Math.max(portrait ? 15 : 13, Math.round(vmin * (portrait ? 4.2 : 2.6)));
+  var axFH = Math.max(portrait && telefons ? 15 : 13,
+                      Math.round(vmin * (portrait ? (telefons ? 4.2 : 2.8) : 2.6)));
   var padL = Math.round(axFH * 2.4),
       padB = axFH + Math.round(vmin * 1.5),
       padT = axFH + Math.round(vmin * 1.5) + 8; // +rinda mērvienībai virs Y cipariem

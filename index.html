@@ -58,6 +58,9 @@
   .collbl { font-size:2.8vmin; color:#8B897F; letter-spacing:0.05em; margin-bottom:1vmin; }
   .big  { font-size:20vmin; font-weight:700; line-height:0.95; letter-spacing:-0.02em; }
   .big .dec { font-size:55%; font-weight:600; }
+  /* negatīvai cenai ("−0,4") visa būtība ir aiz komata — decimāldaļu rāda
+     gandrīz pilnā izmērā (2026-08-06) */
+  .big.zem-nulles .dec { font-size:85%; }
   /* vērtējuma etiķete — inversa: balts uz kvartiles krāsas */
   #verdict {
     display:none; font-size:4.3vmin; line-height:1.25; font-weight:700; color:#fff;
@@ -103,11 +106,13 @@
   body.night .col-next { border-left-color:#26262B; }
   body.night #err { color:#C9C9CE; border-left-color:#BE3A2E; }
 
-  /* ---------- portrets: telefoni kioska režīmā (2026-08-05) ----------
+  /* ---------- portrets: TELEFONI kioska režīmā (2026-08-05) ----------
      Auditorija — vecāki cilvēki: atbilde PIRMS cipara. Kolonnas saliktas
      stabā, vērtējuma etiķete virs cenas (flex order), viss lielāks.
-     Planšetes vienmēr ir ainavā — šis bloks tās neskar. */
-  @media (orientation: portrait) {
+     TIKAI šauriem ekrāniem (<600 px): planšetei portretā šīs proporcijas
+     brauc ārā (2026-08-06) — tā arī vertikāli paliek pie ainavas
+     izkārtojuma. JS isPortrait() lieto to pašu 600 px robežu. */
+  @media (orientation: portrait) and (max-width: 599px) {
     #row1 { flex-direction:column; padding:9vmin 4vmin 0.5vmin; }
     #row1 .collbl   { order:1; -webkit-order:1; font-size:4.5vmin; margin-bottom:2vmin; }
     #row1 .rowbottom{ order:2; -webkit-order:2; margin-top:0; padding-top:0; margin-bottom:2vmin; }
@@ -522,6 +527,8 @@ function render(){
   if (cur) {
     var qi = quartileOf(cur.value, weeklyCuts || dayCutsMap()[dayKey(cur.start)]);
     $("price").innerHTML = priceHTML(cur.value);
+    // zem nulles būtība ir aiz komata — decimāldaļai lielāks izmērs (CSS)
+    $("price").className = cur.value < 0 ? "big zem-nulles" : "big";
     $("price").style.color = textQ[qi];
     vd.innerHTML = QNAMES[qi];
     vd.style.display = "inline-block";
@@ -530,6 +537,7 @@ function render(){
     else       { vd.style.background = COLORS.bar[qi];  vd.style.color = "#fff"; }
   } else {
     $("price").innerHTML = "–";
+    $("price").className = "big";
     $("price").style.color = "";
     vd.innerHTML = "NAV DATU";
     vd.style.display = "inline-block";
@@ -772,7 +780,10 @@ var lastChartTouch = 0;
 var lastNightFlag = false;
 var chartGeom = null; // {t0v,t1v,padL,plotW} pēdējais zīmējums — pirksta matemātikai
 
-function isPortrait(){ return window.innerHeight > window.innerWidth; }
+// "portrets" = TELEFONA portrets (<600 px plats). Platāka ierīce (planšete)
+// vertikāli lieto ainavas izkārtojumu, tāpēc arī grafika uzvedība (skata
+// logs, pirkstu žesti, fonti) seko tai pašai CSS 600 px robežai.
+function isPortrait(){ return window.innerHeight > window.innerWidth && window.innerWidth < 600; }
 
 function chartBounds(){
   // robežas no grafika krājuma, ne pilnā saraksta — publiskajā režīmā citādi

@@ -33,7 +33,15 @@
   Abas paletes (diena + nakts) validētas pret CVD un kontrasta prasībām.
 -->
 <style>
-  html, body { margin:0; padding:0; height:100%; }
+  html, body { margin:0; padding:0; height:100%;
+               /* mobilo pārlūku "dinamiskie fontu izmēri" šo lapu nemērogo —
+                  izmēri te jau plūst līdzi ekrānam (2026-08-06) */
+               -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  /* IZMĒRU GRIESTI (2026-08-06): viss ir vmin vienībās — ierīcēs tas der,
+     bet datora logā burti izaug absurdi lieli un grafikam nepaliek vietas.
+     Katram izmēram blakus min(vmin, px) ar absolūto maksimumu; ierīcēs
+     vērtības ir zem griestiem, tāpēc tur nekas nemainās. Vecais iPad Safari
+     min() neprot un paliek pie vmin rezerves deklarācijas. */
   body {
     font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
     background:#F6F5F1; color:#201F1B; text-align:center;
@@ -44,26 +52,33 @@
   #clock, #status, #nexttime { font-family: Menlo, "Courier New", monospace; }
   /* pulkstenis ir arī tēmas pārslēgs — padding dod pirkstam lielāku mērķi */
   #clock  { position:absolute; top:0; right:0; padding:2vmin 2.5vmin 3vmin 3vmin;
-            font-size:2.6vmin; color:#8B897F; cursor:pointer; }
+            font-size:2.6vmin; font-size:min(2.6vmin, 24px);
+            color:#8B897F; cursor:pointer; }
   /* parādās tikai tad, ja dati nav svaigi (>20 min) */
   #status { position:absolute; top:2vmin; left:0; right:0; text-align:center;
-            font-size:2.2vmin; color:#A8731A; display:none; }
+            font-size:2.2vmin; font-size:min(2.2vmin, 20px);
+            color:#A8731A; display:none; }
   /* 1. rinda — divas kolonnas: tagadējā cena un nākamā lētākā */
   /* kolonnas vienādā augstumā; pēdējais elements (etiķetes) pie apakšas —
      kreisā un labā puse nolīdzinās pēc apakšējās malas */
-  #row1 { display:flex; padding:7vmin 2vmin 0.5vmin; }
+  /* flex-shrink:0 — ja saturs tomēr pāraug logu, lai cieš grafiks (apgriež
+     apakšu), nevis rindas brauc grafikam virsū (2026-08-06 datora logā) */
+  #row1 { display:flex; padding:7vmin 2vmin 0.5vmin; flex-shrink:0; }
   #row1 .col { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; }
   .rowbottom { margin-top:auto; padding-top:1.5vmin; }
   .col-next { border-left:1px solid #E3E1D8; }
-  .collbl { font-size:2.8vmin; color:#8B897F; letter-spacing:0.05em; margin-bottom:1vmin; }
-  .big  { font-size:20vmin; font-weight:700; line-height:0.95; letter-spacing:-0.02em; }
+  .collbl { font-size:2.8vmin; font-size:min(2.8vmin, 26px);
+            color:#8B897F; letter-spacing:0.05em; margin-bottom:1vmin; }
+  .big  { font-size:20vmin; font-size:min(20vmin, 180px);
+          font-weight:700; line-height:0.95; letter-spacing:-0.02em; }
   .big .dec { font-size:55%; font-weight:600; }
   /* negatīvai cenai ("−0,4") visa būtība ir aiz komata — decimāldaļu rāda
      gandrīz pilnā izmērā (2026-08-06) */
   .big.zem-nulles .dec { font-size:85%; }
   /* vērtējuma etiķete — inversa: balts uz kvartiles krāsas */
   #verdict {
-    display:none; font-size:4.3vmin; line-height:1.25; font-weight:700; color:#fff;
+    display:none; font-size:4.3vmin; font-size:min(4.3vmin, 38px);
+    line-height:1.25; font-weight:700; color:#fff;
     padding:0.8vmin 3vmin;
     border-radius:1.4vmin; letter-spacing:0.14em;
   }
@@ -74,7 +89,8 @@
   .nextrow {
     display:flex; justify-content:space-between;
     width:auto; min-width:43vmin; box-sizing:border-box;
-    font-size:4.3vmin; line-height:1.25; font-weight:700;
+    font-size:4.3vmin; font-size:min(4.3vmin, 38px);
+    line-height:1.25; font-weight:700;
     padding:0.8vmin 2.6vmin; margin-top:1.2vmin;
     border-radius:1.4vmin; text-align:left;
   }
@@ -84,7 +100,8 @@
   .nextrow .nval { margin-left:3vmin; }
   .nextrow.plain {
     display:block; width:auto; background:none;
-    font-size:3.4vmin; font-weight:400; color:#8B897F;
+    font-size:3.4vmin; font-size:min(3.4vmin, 30px);
+    font-weight:400; color:#8B897F;
   }
   /* lētā posma rinda — konteksts, ne fakts: bez rāmja, mantotā teksta krāsa
      (naktī līdz ar body kļūst blāva) */
@@ -94,7 +111,8 @@
                display:flex; flex-direction:column; justify-content:center; }
   #chart { width:100%; display:block; }
   #err {
-    display:none; margin:3vmin auto 0; max-width:80%; font-size:3vmin;
+    display:none; margin:3vmin auto 0; max-width:80%;
+    font-size:3vmin; font-size:min(3vmin, 28px);
     color:#201F1B; border-left:3px solid #BC3425;
     padding:1.5vmin 2.5vmin; text-align:left; word-wrap:break-word;
   }
@@ -143,15 +161,17 @@
      Anša 2026-08-06 spec pēc iPad ekrānuzņēmumiem */
   @media (orientation: portrait) and (min-width: 600px) {
     #row1 { padding:6vmin 4vmin 0.5vmin; }
-    #row1 .collbl   { font-size:2.6vmin; margin-bottom:1vmin; }
+    #row1 .collbl   { font-size:2.6vmin; font-size:min(2.6vmin, 24px); margin-bottom:1vmin; }
     #row1 .rowbottom{ margin-bottom:1.5vmin; }
-    #row1 .big      { font-size:15vmin; }
-    #verdict { font-size:4.6vmin; padding:1vmin 4vmin; border-radius:1.6vmin; }
+    #row1 .big      { font-size:15vmin; font-size:min(15vmin, 135px); }
+    #verdict { font-size:4.6vmin; font-size:min(4.6vmin, 42px);
+               padding:1vmin 4vmin; border-radius:1.6vmin; }
     .col-next { margin-top:3vmin; }
-    .nextrow { font-size:3.4vmin; min-width:48vmin; border-radius:1.4vmin;
+    .nextrow { font-size:3.4vmin; font-size:min(3.4vmin, 30px);
+               min-width:48vmin; border-radius:1.4vmin;
                padding:0.9vmin 2.8vmin; margin-top:1.2vmin; }
-    .nextrow.plain { font-size:2.8vmin; }
-    #clock  { font-size:3vmin; }
+    .nextrow.plain { font-size:2.8vmin; font-size:min(2.8vmin, 26px); }
+    #clock  { font-size:3vmin; font-size:min(3vmin, 26px); }
   }
 </style>
 </head>
@@ -863,8 +883,10 @@ function renderChart(night){
   // vienots asu parakstu fonts un krāsa (2026-08-05: bija divi izmēri un bāls tonis;
   // 2.6 vmin — 3.2 izrādījās par lielu, kad abas asis vienā izmērā);
   // portretā (telefons rokā, vecāki cilvēki) — lielāks minimums un mērogs
+  // arī asu fontam absolūtie griesti (kā CSS min() — datora logā vmin izaug)
+  var axMax = portrait ? (telefons ? 30 : 22) : 21;
   var axFH = Math.max(portrait && telefons ? 15 : 13,
-                      Math.round(vmin * (portrait ? (telefons ? 4.2 : 2.8) : 2.6)));
+                      Math.min(axMax, Math.round(vmin * (portrait ? (telefons ? 4.2 : 2.8) : 2.6))));
   var padL = Math.round(axFH * 2.4),
       padB = axFH + Math.round(vmin * 1.5),
       padT = axFH + Math.round(vmin * 1.5) + 8; // +rinda mērvienībai virs Y cipariem

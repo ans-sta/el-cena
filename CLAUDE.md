@@ -32,6 +32,14 @@ tas, kas vajadzīgs lapas darbam.
 - Decimāldaļas kāpne: <1 c → 95 % (`.zem-viena`), 1–10 c → 75 %
   (`.viencipara`), ≥10 c → 55 %.
 - Krāsas `COLORS` blokā validētas pret CVD; auksts = lēts, karsts = dārgs.
+- Panelis `DIENAS LĒTĀKAIS` (līdz 2026-09-01 „LĒTIE LAIKI”): sliekšņu rindas
+  pēc `LADDER`. Trīs noteikumi, kas tur to godīgu — (1) logs, kuram līdz datu
+  malai atlicis mazāk par 4 periodiem, nav logs (tirgus dienas aste Rīgā ir
+  nākamajā datumā, citādi katru dienu rastos logs, kura nav); (2) „zem 20” kā
+  dziļākais slieksnis netiek rādīts — tukšs apgalvojums; (3) ja nepaliek
+  neviena rinda, rāda lētāko 2 h logu ar vidējo cenu, krāsotu pēc tās pašas
+  kāpnes. Ekrāns ir vienmēr ieslēgts pie sienas, tāpēc tukšums der tikpat maz
+  kā nepatiess solījums.
 - Portretā lēto logu rindas ir pogas (skats uz rindas laiku ±30 min, min
   4,5 h); grafiks bīdāms/tālummaināms ar pirkstiem; 2 min bez pieskāriena —
   atpakaļ uz AUTO.

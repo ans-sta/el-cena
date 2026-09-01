@@ -850,7 +850,11 @@ function renderNext(cur, night){
         var cAvg = bs / W, cS = ser[bi].start, cE = ser[bi + W - 1].end;
         var cLi = LADDER.length - 1;
         for (i = 0; i < LADDER.length; i++) if (cAvg < LADDER[i]) { cLi = i; break; }
-        html = row(rangeLabel(cS, cE), fmtPrice(cAvg), cLi, cS.getTime(), cE.getTime());
+        // "ap" priekšā, jo tas ir loga VIDĒJAIS, ne griesti kā sliekšņu rindās
+        // ("zem 3" ir garantija, šis nav) — un bez vārda rinda ir divi skaitļi
+        // pēc kārtas, ko sekundes skatienā neizlasa. Decimāldaļa paliek, lai
+        // sakristu ar pārējām cenām lapā.
+        html = row(rangeLabel(cS, cE), "ap " + fmtPrice(cAvg), cLi, cS.getTime(), cE.getTime());
       }
     }
   }

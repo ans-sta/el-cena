@@ -34,7 +34,13 @@ tas, kas vajadzīgs lapas darbam.
   (vecie Safari uz sienas planšetēm).
 - Decimāldaļas kāpne: <1 c → 95 % (`.zem-viena`), 1–10 c → 75 %
   (`.viencipara`), ≥10 c → 55 %.
-- Krāsas `COLORS` blokā validētas pret CVD; auksts = lēts, karsts = dārgs.
+- Krāsas (kopš 2026-11-03, variants “B”): 8 varavīksnes soļi pēc FIKSĒTĀM
+  robežām `PRICE_STEPS` [2, 5, 10, 15, 20, 30, 40] c/kWh — stabiņi, cena,
+  etiķete `QNAMES` (8 vārdi) un lēto logu rindas lieto vienu `priceBin()`.
+  Agrāk bija 4 kvartiles pret 7 dienām — 19,4 c vienu dienu sarkans, citu
+  zils (ģimene apjuka). Auksts = lēts, karsts = dārgs. 8 soļi CVD pārbaudi
+  neiztur (oranžā↔sinepju) — apzināti; kontrasts pret fonu ≥3,3:1 dienā,
+  ≥4:1 naktī. Salīdzinājuma paraugs: https://claude.ai/artifact/PRjpU2QMSszzn9ZRAEbHkF
 - Panelis `DIENAS LĒTĀKAIS` (līdz 2026-09-01 „LĒTIE LAIKI”): sliekšņu rindas
   pēc `LADDER`. Trīs noteikumi, kas tur to godīgu — (1) logs, kuram līdz datu
   malai atlicis mazāk par 4 periodiem, nav logs (tirgus dienas aste Rīgā ir

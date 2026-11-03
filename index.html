@@ -250,7 +250,7 @@ var entityId = CONFIG.entityId || "";
 var lastFetch = null;
 // HA: kad boileris TIEŠĀM sildīs — [[t0,t1] ms] no CONFIG.boilerPlanEntity
 // (M19 sensor.boiler_heating_plan, ievēro režīmu un nakts bloku). null →
-// vecā pelēkā josla: šodienas 25 % lētākie (publiski, Lauciņi).
+// pelēkās joslas nav (publiski, Lauciņi).
 var boilerPlan = null;
 var dataStamp = null;  // publiski: kad cenas.json sagatavots (lauks "atjaunots")
 var lastError = "";
@@ -485,29 +485,6 @@ function chartSlots(){
     if (base[i].end > cut) out.push(base[i]);
   }
   return out.length ? out : base;
-}
-
-// Dienas kvartiļu robežas (25/50/75%) — tas pats aprēķins, ko lieto boilera
-// "lētās elektrības" sensors: vērtība <= robeža → zemākā grupa
-function dayKey(d){ return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
-
-function dayCutsMap(){
-  var byDay = {};
-  for (var i = 0; i < slots.length; i++) {
-    var k = dayKey(slots[i].start);
-    (byDay[k] = byDay[k] || []).push(slots[i].value);
-  }
-  var cuts = {};
-  for (var k2 in byDay) {
-    var vals = byDay[k2].slice().sort(function(a, b){ return a - b; });
-    var n = vals.length;
-    cuts[k2] = [
-      vals[Math.max(0, Math.ceil(n * 0.25) - 1)],
-      vals[Math.max(0, Math.ceil(n * 0.50) - 1)],
-      vals[Math.max(0, Math.ceil(n * 0.75) - 1)]
-    ];
-  }
-  return cuts;
 }
 
 
@@ -965,8 +942,6 @@ function renderChart(night){
   // 0 neparaksta (2026-08-05) — pirmais cipars ir pirmais solis (5 vai 2)
   ctx.font = axFH + MONO;
   ctx.fillStyle = ui.ink; ctx.textAlign = "right";
-  var cutsMap = dayCutsMap();
-  var todayCuts = cutsMap[dayKey(now)] || [];
   for (var g = Math.ceil(minV / step) * step; g <= maxV; g += step) {
     var yv = yFor(g);
     if (g !== 0) {
@@ -991,21 +966,21 @@ function renderChart(night){
   ctx.save();
   ctx.beginPath(); ctx.rect(padL, 0, W - padL, H); ctx.clip();
   // boilera stundas: viegli tonēts fons visā zīmējuma augstumā (2026-08-05:
-  // svītriņa zem ass jaucās ar laika cipariem). M19 (boilerPlan) — īstais
-  // boilera plāns no HA (2026-11-03: vecā josla rādīja 22:15 sildīšanu arī
-  // režīmā Minimums un pēc nakts bloka ieviešanas); citur — šodienas 25 %.
-  if (boilerPlan || todayCuts.length) {
+  // svītriņa zem ass jaucās ar laika cipariem). TIKAI īstais boilera plāns no
+  // HA (CONFIG.boilerPlanEntity, M19). 2026-11-03: agrākā rezerves josla
+  // “šodienas 25 % lētākie” publiskajā lapā un Lauciņos rādīja sildīšanu, kuras
+  // nav (Lauciņu boileriem cits noteikums, publiski boilera nav vispār), un
+  // Ansis to nolasīja kā “boileris silda tagad” — tāpēc bez plāna joslas nav.
+  if (boilerPlan) {
     ctx.fillStyle = ui.ink;
     ctx.globalAlpha = night ? 0.10 : 0.07;
     for (var b0 = 0; b0 < cs.length; b0++) {
       var sb = cs[b0];
-      if (boilerPlan) {
-        var st0 = sb.start.getTime(), inPlan = false;
-        for (var bp = 0; bp < boilerPlan.length; bp++) {
-          if (st0 >= boilerPlan[bp][0] && st0 < boilerPlan[bp][1]) { inPlan = true; break; }
-        }
-        if (!inPlan) continue;
-      } else if (dayKey(sb.start) !== dayKey(now) || sb.value > todayCuts[0]) continue;
+      var st0 = sb.start.getTime(), inPlan = false;
+      for (var bp = 0; bp < boilerPlan.length; bp++) {
+        if (st0 >= boilerPlan[bp][0] && st0 < boilerPlan[bp][1]) { inPlan = true; break; }
+      }
+      if (!inPlan) continue;
       var bx = xFor(sb.start.getTime());
       var bx2 = xFor(sb.end.getTime());
       if (bx2 < padL || bx > W) continue;

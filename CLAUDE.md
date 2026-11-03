@@ -46,7 +46,8 @@ tas, kas vajadzīgs lapas darbam.
 - Pelēkā boilera josla: ja mājas `elektriba-config.js` ir `boilerPlanEntity`
   (M19: `sensor.boiler_heating_plan`, atribūts `periodi` = [[sākums, beigas]]),
   josla rāda ĪSTO boilera plānu (ievēro režīmu un nakts bloku); citādi
-  (publiski, Lauciņi) — šodienas 25 % lētākie kā agrāk.
+  (publiski, Lauciņi) joslas NAV — agrākā “šodienas 25 %” rezerve rādīja
+  sildīšanu, kuras nav, un to nolasīja kā “boileris silda tagad”.
 - Panelis `DIENAS LĒTĀKAIS` (līdz 2026-09-01 „LĒTIE LAIKI”): sliekšņu rindas
   pēc `LADDER`. Trīs noteikumi, kas tur to godīgu — (1) logs, kuram līdz datu
   malai atlicis mazāk par 4 periodiem, nav logs (tirgus dienas aste Rīgā ir

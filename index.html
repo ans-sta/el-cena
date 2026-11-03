@@ -111,7 +111,8 @@
   /* 2. rinda — grafiks atlikušajā telpā, ar gaisu zem stundu parakstiem */
   #chartwrap { flex:1; min-height:0; padding:0 3vmin;
                display:flex; flex-direction:column; justify-content:center; }
-  #chart { width:100%; display:block; }
+  /* grafiks ķer pirkstus pats (pan/pinch) visos izkārtojumos — pārlūkam tos nedot */
+  #chart { width:100%; display:block; touch-action:none; }
   #err {
     display:none; margin:3vmin auto 0; max-width:80%;
     font-size:3vmin; font-size:min(3vmin, 28px);
@@ -141,8 +142,6 @@
     .col-next .collbl { display:none; }
     /* grafiks pie apakšējās malas — viss gaiss paliek cenas zonā */
     #chartwrap { justify-content:flex-end; padding-bottom:1.5vmin; }
-    /* grafiks ķer pirkstus pats (pan/pinch) — pārlūkam tos nedot */
-    #chart  { touch-action:none; }
   }
   /* telefons: lielie burti, grafikam 1/3 (JS 0.33) */
   @media (orientation: portrait) and (max-width: 599px) {
@@ -862,17 +861,19 @@ function renderNext(cur, night){
   el.innerHTML = html || '<div class="nextrow plain">Lētu logu tuvumā nav</div>';
 }
 
-/* Portreta grafika skata logs (2026-08-05): bīdāms un tālummaināms tikai
-   grafiks. chartView=null → AUTO (tagad-2h..tagad+6h, seko laikam);
-   pēc pirksta — fiksēts, līdz 2 min bez pieskāriena. */
+/* Grafika skata logs (2026-08-05 portretā, 2026-11-03 arī ainavā): bīdāms un
+   tālummaināms tikai grafiks. chartView=null → AUTO (portretā tagad-2h..
+   tagad+6h, ainavā viss 2–8 h vēstures logs, seko laikam); pēc pirksta —
+   fiksēts, līdz 2 min bez pieskāriena. */
 var chartView = null;
 var lastChartTouch = 0;
 var lastNightFlag = false;
 var chartGeom = null; // {t0v,t1v,padL,plotW} pēdējais zīmējums — pirksta matemātikai
 
 // portrets = jebkura vertikāla ierīce (telefons UN planšete): stāvizkārtojums,
-// skata logs, pirkstu žesti un rindu pogas visiem. Izmēru līmeni (telefona
-// lielie burti pret planšetes kompakto) šķir 600 px robeža CSS un renderChart.
+// AUTO skata logs (tagad-2h..+6h) un rindu pogas visiem; pirkstu žesti — arī
+// ainavā. Izmēru līmeni (telefona lielie burti pret planšetes kompakto) šķir
+// 600 px robeža CSS un renderChart.
 function isPortrait(){ return window.innerHeight > window.innerWidth; }
 
 function chartBounds(){
@@ -934,9 +935,9 @@ function renderChart(night){
   var ctx = cv.getContext("2d");
   ctx.setTransform ? ctx.setTransform(dpr, 0, 0, dpr, 0, 0) : ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
-  // portretā zīmē no grafika krājuma (bīdot var aiziet līdz šodienas rītam);
-  // ainavā — līdzšinējais 2–8 h vēstures logs
-  var cs = isPortrait() ? chartStock() : chartSlots();
+  // portretā un pēc pirksta zīmē no grafika krājuma (bīdot var aiziet līdz
+  // šodienas rītam); ainavā AUTO — līdzšinējais 2–8 h vēstures logs
+  var cs = (portrait || chartView) ? chartStock() : chartSlots();
   if (cs.length === 0) return;
 
   var ui = night ? UI.night : UI.day;
@@ -973,9 +974,9 @@ function renderChart(night){
 
   var t0 = cs[0].start.getTime();
   var t1 = cs[cs.length - 1].end.getTime();
-  // portretā rāda tikai skata logu; ainavā — visu diapazonu kā līdz šim
+  // portretā un pēc pirksta rāda tikai skata logu; ainavā AUTO — visu diapazonu
   var t0v = t0, t1v = t1;
-  if (portrait) {
+  if (portrait || chartView) {
     var vw = chartView ? clampView(chartView) : defaultChartView();
     t0v = vw.start; t1v = vw.end;
   }
@@ -1062,7 +1063,7 @@ function renderChart(night){
   ctx.font = axFH + MONO;
   var spanH = (t1v - t0v) / 3600000;
   var labelEvery = spanH <= 10 ? 1 : (spanH <= 20 ? 2 : 4);
-  if (!portrait) labelEvery = 2;
+  if (!portrait && !chartView) labelEvery = 2;
   var d = new Date(t0v);
   d.setMinutes(0, 0, 0);
   while (d.getTime() <= t1v) {
@@ -1114,12 +1115,13 @@ setInterval(function(){
 window.onresize = function(){ render(); };
 $("clock").addEventListener("click", cycleTheme);
 
-// Grafika bīdīšana/tālummaiņa ar pirkstiem — tikai portretā, tikai uz kanvas
+// Grafika bīdīšana/tālummaiņa ar pirkstiem — visos izkārtojumos (ainavā arī
+// kopš 2026-11-03, Anša lēmums), tikai uz kanvas
 (function(){
   var cv = $("chart");
   var pan = null, pinch = null;
   cv.addEventListener("touchstart", function(e){
-    if (!isPortrait() || !chartGeom) return;
+    if (!chartGeom) return;
     lastChartTouch = new Date().getTime();
     if (e.touches.length === 1) {
       pan = { x: e.touches[0].clientX, t0v: chartGeom.t0v, t1v: chartGeom.t1v };
@@ -1133,7 +1135,7 @@ $("clock").addEventListener("click", cycleTheme);
     e.preventDefault();
   }, false);
   cv.addEventListener("touchmove", function(e){
-    if (!isPortrait() || !chartGeom) return;
+    if (!chartGeom) return;
     lastChartTouch = new Date().getTime();
     var g = chartGeom;
     if (e.touches.length === 1 && pan) {

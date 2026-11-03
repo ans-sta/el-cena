@@ -44,8 +44,9 @@ tas, kas vajadzīgs lapas darbam.
   kāpnes. Ekrāns ir vienmēr ieslēgts pie sienas, tāpēc tukšums der tikpat maz
   kā nepatiess solījums.
 - Portretā lēto logu rindas ir pogas (skats uz rindas laiku ±30 min, min
-  4,5 h); grafiks bīdāms/tālummaināms ar pirkstiem; 2 min bez pieskāriena —
-  atpakaļ uz AUTO.
+  4,5 h). Grafiks bīdāms/tālummaināms ar pirkstiem visos izkārtojumos (ainavā
+  kopš 2026-11-03, Anša lēmums; ainavas AUTO skats — 2–8 h vēsture + viss
+  pārējais — paliek pikselī tāds pats); 2 min bez pieskāriena — atpakaļ uz AUTO.
 
 ## Testēšana
 

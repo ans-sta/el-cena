@@ -105,9 +105,6 @@
     font-size:3.4vmin; font-size:min(3.4vmin, 30px);
     font-weight:400; color:#8B897F;
   }
-  /* lētā posma rinda — konteksts, ne fakts: bez rāmja, mantotā teksta krāsa
-     (naktī līdz ar body kļūst blāva) */
-  .nextrow.era { background:none; color:inherit; }
   /* 2. rinda — grafiks atlikušajā telpā, ar gaisu zem stundu parakstiem */
   #chartwrap { flex:1; min-height:0; padding:0 3vmin;
                display:flex; flex-direction:column; justify-content:center; }
@@ -683,10 +680,6 @@ function renderNext(cur, night){
       '" style="background:' + bg + ';color:' + fg + '">' +
       '<span class="ntime">' + left + '</span><span class="nval">' + right + "</span></div>";
   }
-  function eraRow(left, right, t0, t1){
-    return '<div class="nextrow era" data-t0="' + t0 + '" data-t1="' + t1 +
-      '"><span class="ntime">' + left + '</span><span class="nval">' + right + "</span></div>";
-  }
 
   var html = "";
   var count = 0;
@@ -741,8 +734,14 @@ function renderNext(cur, night){
   if (eraStart !== null) {
     eraT0 = ser[eraStart].start.getTime();
     eraT1 = eraEnd.open ? ser[ser.length - 1].end.getTime() : eraEnd.time.getTime();
-    later.push({ t: eraT0, h: eraRow(eraEnd.open ? fromLabel(ser[eraStart].start)
-                    : rangeLabel(ser[eraStart].start, eraEnd.time), "lēti", eraT0, eraT1) });
+    // posma vidējā cena, ne vārds “lēti” (2026-11-03, Ansis): posms ir lēts
+    // tikai pret pārējo dienu, un dārgā dienā “lēti” pie 20 c sajauca ar
+    // fiksēto krāsu skalu, kur 20–30 c ir DĀRGI. Krāsa — pēc tās pašas vidējās.
+    var eSum = 0;
+    for (i = eraStart; i < eraEnd.idx; i++) eSum += ser[i].value;
+    var eAvg = eSum / (eraEnd.idx - eraStart);
+    later.push({ t: eraT0, h: row(eraEnd.open ? fromLabel(ser[eraStart].start)
+                    : rangeLabel(ser[eraStart].start, eraEnd.time), "ap " + fmtPrice(eAvg), eAvg, eraT0, eraT1) });
     count++;
   }
 

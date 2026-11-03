@@ -41,6 +41,8 @@ tas, kas vajadzīgs lapas darbam.
   zils (ģimene apjuka). Auksts = lēts, karsts = dārgs. 8 soļi CVD pārbaudi
   neiztur (oranžā↔sinepju) — apzināti; kontrasts pret fonu ≥3,3:1 dienā,
   ≥4:1 naktī. Salīdzinājuma paraugs: https://claude.ai/artifact/PRjpU2QMSszzn9ZRAEbHkF
+  Lētā posma (Otsu) rinda kopš tās pašas dienas raksta “ap X” (posma vidējā)
+  un krāsojas pēc tās — vārds “lēti” pie 20 c sajaucās ar skalu, kur 20–30 = DĀRGI.
 - Panelis `DIENAS LĒTĀKAIS` (līdz 2026-09-01 „LĒTIE LAIKI”): sliekšņu rindas
   pēc `LADDER`. Trīs noteikumi, kas tur to godīgu — (1) logs, kuram līdz datu
   malai atlicis mazāk par 4 periodiem, nav logs (tirgus dienas aste Rīgā ir

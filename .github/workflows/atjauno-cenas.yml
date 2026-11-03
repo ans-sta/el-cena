@@ -3,7 +3,9 @@
 #   11:20 UTC = 14:20 EEST (vasara) — galvenais gājiens
 #   12:20 UTC = rezerve, ja pirmajā vēl nebija; ziemā (EET) šis ir 14:20
 #   01:15 UTC = rīta gājiens — datu logs pārbīdās uz jauno dienu
-# GitHub cron mēdz kavēties līdz ~pusstundai — tas te neko nemaina.
+# GitHub cron kavē par 3–9 h (mērīts 2026-09..11), tāpēc galvenais palaidējs
+# ir M19 Mac mini (palaid-atjauno.sh, 14:15/15:15/16:30 Rīgā, workflow_dispatch);
+# šie croni paliek kā rezerve.
 name: Atjauno cenas
 
 on:

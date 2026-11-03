@@ -11,8 +11,11 @@ tas, kas vajadzīgs lapas darbam.
   un mājas HA (`config/www/elektriba-config.js` ar tokenu — git repo tas
   NEKAD nenonāk).
 - `cenas.json` — GitHub Actions (`atjauno-cenas.yml` → `atjauno_cenas.py`)
-  3× dienā no Elering publiskā API. Elering CORS neatdod — lapa datus drīkst
-  ņemt tikai no sava domēna.
+  no Elering publiskā API. GitHub cron kavē par 3–9 h, tāpēc darbu palaiž
+  M19 mini launchd (`lv.stabingis.el-cena-atjauno.plist` →
+  `palaid-atjauno.sh`, 14:15/15:15/16:30 Rīgā, tikai ja rītdienas vēl nav;
+  žurnāls `~/Library/Logs/el-cena-atjauno.log`); cron paliek kā rezerve.
+  Elering CORS neatdod — lapa datus drīkst ņemt tikai no sava domēna.
 - Izvietošana: `git push` (Pages atjaunojas ~1 min) + `./izvieto.sh` (nokopē
   lapu un ikonas uz abu māju HA `config/www`; mājas `elektriba-config.js`
   NEAIZTIKT). Pēc push pavilkt arī šo darba kopiju, ja strādāts citur.

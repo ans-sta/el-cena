@@ -27,6 +27,9 @@ tā git repo nekad nenonāk.
 - `cenas.json` — publiskā režīma cenu krājums (~9 dienas + rītdiena), ko
   1–2× dienā atjauno GitHub Actions darbs `atjauno-cenas.yml`
   (`atjauno_cenas.py`; EUR/MWh × 1,21 / 10 → c/kWh ar PVN).
+- `palaid-atjauno.sh` + `lv.stabingis.el-cena-atjauno.plist` — M19 Mac mini
+  14:15, 15:15, 16:30 palaiž šo darbu, ja rītdienas vēl nav (GitHub
+  ieplānotos darbus kavē par stundām).
 - `izvieto.sh` — nokopē `index.html` uz abu māju HA `config/www/`.
 
 Datu avots — [Elering publiskais API](https://dashboard.elering.ee/)

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- M19 Mac mini: palaid-atjauno.sh 14:15, 15:15, 16:30 vietējā (Rīgas) laikā.
+     Uzstādīšana: cp šo failu ~/Library/LaunchAgents/ un
+     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/lv.stabingis.el-cena-atjauno.plist -->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>lv.stabingis.el-cena-atjauno</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/sh</string>
+		<string>/Users/minim4/dev/sites/el-cena/palaid-atjauno.sh</string>
+	</array>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict>
+			<key>Hour</key>
+			<integer>14</integer>
+			<key>Minute</key>
+			<integer>15</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>15</integer>
+			<key>Minute</key>
+			<integer>15</integer>
+		</dict>
+		<dict>
+			<key>Hour</key>
+			<integer>16</integer>
+			<key>Minute</key>
+			<integer>30</integer>
+		</dict>
+	</array>
+</dict>
+</plist>

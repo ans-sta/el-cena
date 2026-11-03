@@ -248,6 +248,10 @@ var slots = [];        // [{start:Date, end:Date, value:Number}] — HA: šodien
 var hasTomorrow = false; // rītdienas cenas klāt → pagātni grafikā vairs nerāda
 var entityId = CONFIG.entityId || "";
 var lastFetch = null;
+// HA: kad boileris TIEŠĀM sildīs — [[t0,t1] ms] no CONFIG.boilerPlanEntity
+// (M19 sensor.boiler_heating_plan, ievēro režīmu un nakts bloku). null →
+// vecā pelēkā josla: šodienas 25 % lētākie (publiski, Lauciņi).
+var boilerPlan = null;
 var dataStamp = null;  // publiski: kad cenas.json sagatavots (lauks "atjaunots")
 var lastError = "";
 
@@ -403,7 +407,23 @@ function loadDataHA(){
       lastError = "";
       $("err").style.display = "none";
       render();
+      loadBoilerPlan();
     });
+  });
+}
+
+function loadBoilerPlan(){
+  if (!CONFIG.boilerPlanEntity) return;
+  xhr("/api/states/" + CONFIG.boilerPlanEntity, function(err, st){
+    // kļūdas gadījumā paliek iepriekšējais plāns — josla ir palīgs, ne cena
+    if (err || !st || !st.attributes || !(st.attributes.periodi instanceof Array)) return;
+    var p = st.attributes.periodi, out = [];
+    for (var i = 0; i < p.length; i++) {
+      var a = parseDate(p[i][0]), b = parseDate(p[i][1]);
+      if (a && b) out.push([a.getTime(), b.getTime()]);
+    }
+    boilerPlan = out;
+    render();
   });
 }
 
@@ -970,14 +990,22 @@ function renderChart(night){
   // klips uz zīmējuma lauku — bīdot stabiņi nedrīkst braukt pāri Y ciparu joslai
   ctx.save();
   ctx.beginPath(); ctx.rect(padL, 0, W - padL, H); ctx.clip();
-  // boilera stundas — šodienas 25% lētākie periodi: viegli tonēts fons visā
-  // zīmējuma augstumā (2026-08-05: svītriņa zem ass jaucās ar laika cipariem)
-  if (todayCuts.length) {
+  // boilera stundas: viegli tonēts fons visā zīmējuma augstumā (2026-08-05:
+  // svītriņa zem ass jaucās ar laika cipariem). M19 (boilerPlan) — īstais
+  // boilera plāns no HA (2026-11-03: vecā josla rādīja 22:15 sildīšanu arī
+  // režīmā Minimums un pēc nakts bloka ieviešanas); citur — šodienas 25 %.
+  if (boilerPlan || todayCuts.length) {
     ctx.fillStyle = ui.ink;
     ctx.globalAlpha = night ? 0.10 : 0.07;
     for (var b0 = 0; b0 < cs.length; b0++) {
       var sb = cs[b0];
-      if (dayKey(sb.start) !== dayKey(now) || sb.value > todayCuts[0]) continue;
+      if (boilerPlan) {
+        var st0 = sb.start.getTime(), inPlan = false;
+        for (var bp = 0; bp < boilerPlan.length; bp++) {
+          if (st0 >= boilerPlan[bp][0] && st0 < boilerPlan[bp][1]) { inPlan = true; break; }
+        }
+        if (!inPlan) continue;
+      } else if (dayKey(sb.start) !== dayKey(now) || sb.value > todayCuts[0]) continue;
       var bx = xFor(sb.start.getTime());
       var bx2 = xFor(sb.end.getTime());
       if (bx2 < padL || bx > W) continue;
